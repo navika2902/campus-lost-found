@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost &amp; Found</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(135deg, #e0f2fe, #f8fafc); min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .box { background: white; width: 420px; padding: 45px; border-radius: 20px; text-align: center; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12); }
+        h1 { color: #1e293b; margin-bottom: 10px; }
+        p { color: #64748b; margin-bottom: 30px; }
+        a { display: block; padding: 14px; margin: 12px 0; border-radius: 10px; text-decoration: none; font-weight: bold; }
+        .login { background: #2563eb; color: white; }
+        .register { background: #e0f2fe; color: #2563eb; }
+        a:hover { opacity: 0.9; }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <div style="font-size: 55px;">🔍</div>
+        <h1>Lost &amp; Found</h1>
+        <p>Campus Lost &amp; Found Platform</p>
+        <a class="login" href="{{ url_for('login') }}">Login</a>
+        <a class="register" href="{{ url_for('register') }}">Create Account</a>
+    </div>
+</body>
+
+</html>
