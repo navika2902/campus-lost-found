@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CampusFind — Lost & Found</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF8F3;
+    --paper-dim:#F1EDE3;
+    --ink:#1B1F3B;
+    --ink-soft:#565A78;
+    --gold:#E8A33D;
+    --gold-dark:#C9861F;
+    --lost:#E85D5D;
+    --lost-bg:#FDEAEA;
+    --found:#2E9E6B;
+    --found-bg:#E7F6EE;
+    --resolved:#8B8FA3;
+    --resolved-bg:#EEEDF4;
+    --card:#FFFFFF;
+    --border:#E7E2D6;
+    --shadow: 0 10px 30px -12px rgba(27,31,59,0.15);
+    --radius: 18px;
+  }
+  [data-theme="dark"]{
+    --paper:#12121C;
+    --paper-dim:#191925;
+    --ink:#F2F1F8;
+    --ink-soft:#A6A9C4;
+    --card:#1C1C2A;
+    --border:#2C2C3E;
+    --lost-bg:#3A1F22;
+    --found-bg:#1B3227;
+    --resolved-bg:#26263A;
+    --shadow: 0 10px 30px -12px rgba(0,0,0,0.5);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:
+      radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0) 0 0/22px 22px,
+      var(--paper);
+    color:var(--ink);
+    transition:background .3s ease, color .3s ease;
+    min-height:100vh;
+  }
+  h1,h2,h3{font-family:'Fraunces',serif;}
+  ::selection{background:var(--gold); color:#1B1F3B;}
+  a{color:inherit;}
+
+  /* ---------- HEADER ---------- */
+  header{
+    background:var(--ink);
+    color:var(--paper);
+    padding:16px 24px;
+    position:sticky; top:0; z-index:30;
+    box-shadow:0 2px 20px rgba(0,0,0,0.2);
+  }
+  [data-theme="dark"] header{background:#0C0C14;}
+  .header-content{
+    max-width:1180px; margin:auto;
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+  }
+  .logo{
+    font-family:'Fraunces',serif; font-weight:600; font-size:22px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .logo .pin{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--gold); box-shadow:0 0 0 4px rgba(232,163,61,0.25);
+  }
+  .header-actions{display:flex; align-items:center; gap:10px;}
+  .icon-btn{
+    background:transparent; border:1px solid rgba(255,255,255,0.2);
+    color:var(--paper); width:38px; height:38px; border-radius:50%;
+    cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+    transition:background .2s;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,0.12);}
+  .post-btn{
+    background:var(--gold); color:#1B1F3B; border:none;
+    padding:10px 18px; border-radius:24px; cursor:pointer;
+    font-weight:700; font-size:14px; letter-spacing:.2px;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .post-btn:hover{transform:translateY(-1px); box-shadow:0 6px 16px rgba(232,163,61,0.4);}
+
+  /* ---------- MAIN ---------- */
+  main{max-width:1180px; margin:auto; padding:32px 24px 80px;}
+
+  .welcome h1{font-size:34px; margin-bottom:6px; letter-spacing:-0.5px;}
+  .welcome p{color:var(--ink-soft); font-size:15px; margin-bottom:22px;}
+
+  /* ---------- STATS STRIP (signature element) ---------- */
+  .stats{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+    margin-bottom:26px;
+  }
+  .stat{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:16px 18px; position:relative; overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .stat::before{
+    content:''; position:absolute; top:10px; right:12px; width:8px; height:8px;
+    border-radius:50%;
+  }
+  .stat.lost::before{background:var(--lost);}
+  .stat.found::before{background:var(--found);}
+  .stat.resolved::before{background:var(--resolved);}
+  .stat.rate::before{background:var(--gold-dark);}
+  .stat .num{font-family:'Fraunces',serif; font-size:28px; font-weight:600; line-height:1;}
+  .stat .lbl{font-size:12px; color:var(--ink-soft); margin-top:6px; text-transform:uppercase; letter-spacing:.5px;}
+
+  /* ---------- SEARCH ---------- */
+  .search-box{
+    background:var(--card); border:1px solid var(--border);
+    padding:6px 6px 6px 16px; border-radius:16px;
+    box-shadow:var(--shadow); margin-bottom:16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .search-box svg{flex-shrink:0; opacity:.5;}
+  .search-box input{
+    width:100%; padding:12px 6px; border:none; background:transparent;
+    font-size:15px; outline:none; color:var(--ink); font-family:'Inter',sans-serif;
+  }
+  .sort-select{
+    border:none; background:var(--paper-dim); border-radius:12px; padding:10px 12px;
+    font-size:13px; font-weight:600; color:var(--ink); cursor:pointer;
+  }
+
+  /* ---------- FILTERS ---------- */
+  .filters{
+    display:flex; gap:8px; overflow-x:auto; margin-bottom:24px; padding-bottom:4px;
+  }
+  .filters::-webkit-scrollbar{height:4px;}
+  .filter{
+    padding:9px 16px; border-radius:20px; border:1px solid var(--border);
+    background:var(--card); cursor:pointer; white-space:nowrap; font-size:13px;
+    font-weight:600; color:var(--ink-soft); transition:.15s;
+  }
+  .filter:hover{border-color:var(--gold);}
+  .filter.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+
+  /* ---------- LISTINGS ---------- */
+  .listings{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:18px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    overflow:hidden; box-shadow:var(--shadow); transition:.2s;
+    display:flex; flex-direction:column; cursor:pointer; position:relative;
+    animation: rise .35s ease both;
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+  .card:hover{transform:translateY(-4px); box-shadow:0 16px 34px -14px rgba(27,31,59,0.28);}
+  .card.resolved{opacity:.55;}
+  .match-flag{
+    position:absolute; top:10px; right:10px; background:var(--gold); color:#1B1F3B;
+    font-size:10px; font-weight:800; padding:4px 9px; border-radius:20px; z-index:2;
+    letter-spacing:.3px; box-shadow:0 3px 10px rgba(0,0,0,.2);
+  }
+  .card-image{
+    width:100%; height:170px; object-fit:cover; background:var(--paper-dim);
+    display:flex; align-items:center; justify-content:center; font-size:52px;
+  }
+  .card-content{padding:16px; display:flex; flex-direction:column; gap:6px; flex:1;}
+  .status{
+    display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:14px;
+    font-size:11px; font-weight:800; letter-spacing:.3px; width:fit-content;
+  }
+  .status.lost{background:var(--lost-bg); color:var(--lost);}
+  .status.found{background:var(--found-bg); color:var(--found);}
+  .status.resolved{background:var(--resolved-bg); color:var(--resolved);}
+  .card h3{font-size:17px; margin-top:2px;}
+  .card .meta{color:var(--ink-soft); font-size:13px; display:flex; gap:5px; align-items:center;}
+  .card .location{color:var(--gold-dark); font-weight:700;}
+  .card .desc{color:var(--ink-soft); font-size:13px; line-height:1.4; margin-top:2px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .timestamp{font-size:11px; color:var(--ink-soft); margin-top:auto; padding-top:8px; font-family:'JetBrains Mono',monospace;}
+  .card-btns{display:flex; gap:8px; margin-top:8px;}
+  .contact-btn, .resolve-btn, .delete-btn{
+    flex:1; padding:10px; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:700;
+    transition:.15s;
+  }
+  .contact-btn{background:var(--ink); color:var(--paper);}
+  .contact-btn:hover{background:var(--gold-dark);}
+  .resolve-btn{background:var(--found-bg); color:var(--found);}
+  .delete-btn{background:var(--lost-bg); color:var(--lost); flex:0 0 42px;}
+
+  .empty{
+    grid-column:1/-1; text-align:center; padding:70px 20px; color:var(--ink-soft);
+    background:var(--card); border:1px dashed var(--border); border-radius:var(--radius);
+  }
+  .empty h3{color:var(--ink); margin-bottom:6px; font-size:20px;}
+  .empty button{
+    margin-top:16px; background:var(--gold); border:none; padding:10px 20px; border-radius:20px;
+    font-weight:700; cursor:pointer;
+  }
+
+  /* ---------- MODAL ---------- */
+  .modal{
+    display:none; position:fixed; inset:0; background:rgba(15,15,25,0.6);
+    justify-content:center; align-items:center; padding:20px; z-index:50; backdrop-filter:blur(2px);
+  }
+  .modal-content{
+    background:var(--card); width:100%; max-width:520px; max-height:90vh; overflow-y:auto;
+    padding:26px; border-radius:22px; box-shadow:0 30px 60px rgba(0,0,0,0.3);
+    animation:pop .25s ease;
+  }
+  @keyframes pop{from{opacity:0; transform:scale(.96);} to{opacity:1; transform:scale(1);}}
+  .modal-content h2{margin-bottom:18px; font-size:22px;}
+  .form-group{margin-bottom:14px;}
+  .form-group label{display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:var(--ink-soft);}
+  .form-group input, .form-group textarea, .form-group select{
+    width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px;
+    font-size:14px; font-family:'Inter',sans-serif; background:var(--paper-dim); color:var(--ink); outline:none;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus{border-color:var(--gold);}
+  textarea{resize:vertical; min-height:80px;}
+  .status-toggle{display:flex; gap:8px;}
+  .status-toggle label{
+    flex:1; text-align:center; padding:10px; border:1px solid var(--border); border-radius:10px;
+    cursor:pointer; font-weight:700; font-size:13px; color:var(--ink-soft);
+  }
+  .status-toggle input{display:none;}
+  .status-toggle input:checked + span{color:inherit;}
+  .status-toggle .opt-lost.checked{background:var(--lost-bg); border-color:var(--lost); color:var(--lost);}
+  .status-toggle .opt-found.checked{background:var(--found-bg); border-color:var(--found); color:var(--found);}
+  .preview-wrap{margin-top:8px;}
+  #photoPreview{width:100%; max-height:160px; object-fit:cover; border-radius:10px; display:none; margin-top:8px;}
+  .submit-btn{
+    width:100%; padding:13px; background:var(--ink); color:var(--paper); border:none;
+    border-radius:12px; cursor:pointer; font-size:15px; font-weight:700; margin-top:6px;
+  }
+  .close-btn{
+    width:100%; padding:11px; background:transparent; color:var(--ink-soft); border:none;
+    margin-top:6px; cursor:pointer; font-weight:600; font-size:13px;
+  }
+
+  /* detail modal */
+  .detail-img{width:100%; height:220px; object-fit:cover; border-radius:14px; background:var(--paper-dim);
+    display:flex; align-items:center; justify-content:center; font-size:64px; margin-bottom:16px;}
+  .detail-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:14px;}
+  .detail-row span:first-child{color:var(--ink-soft); font-weight:600;}
+
+  /* ---------- TOAST ---------- */
+  .toast-container{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:100;
+    display:flex; flex-direction:column; gap:8px; align-items:center;}
+  .toast{
+    background:var(--ink); color:var(--paper); padding:12px 20px; border-radius:24px;
+    font-size:13px; font-weight:600; box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    animation: toastIn .25s ease, toastOut .25s ease 2.5s forwards;
+  }
+  @keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(10px);}}
+
+  .visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);}
+  button:focus-visible, input:focus-visible, .filter:focus-visible, .card:focus-visible{
+    outline:2px solid var(--gold); outline-offset:2px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+
+  @media (max-width:640px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .welcome h1{font-size:26px;}
+    main{padding:22px 16px 70px;}
+  }
+
+  /* ---------- PROFILE ADDITION ---------- */
+  .profile-btn{
+    background:transparent; color:var(--paper); border:1px solid rgba(255,255,255,0.25);
+    padding:10px 16px; border-radius:24px; cursor:pointer; font-weight:700; font-size:14px;
+    transition:background .2s, transform .15s;
+  }
+  .profile-btn:hover{background:rgba(255,255,255,0.12); transform:translateY(-1px);}
+  .profile-header{
+    display:flex; align-items:center; gap:16px; padding-bottom:18px;
+    border-bottom:1px solid var(--border); margin-bottom:18px;
+  }
+  .profile-avatar{
+    width:64px; height:64px; border-radius:50%; background:var(--gold);
+    color:#1B1F3B; display:flex; align-items:center; justify-content:center;
+    font-size:28px; font-weight:800; flex-shrink:0;
+  }
+  .profile-header h2{margin:0 0 4px;}
+  .profile-header p{color:var(--ink-soft); font-size:13px;}
+  .profile-stats{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;
+  }
+  .profile-stat{
+    background:var(--paper-dim); border-radius:12px; padding:12px; text-align:center;
+  }
+  .profile-stat strong{display:block; font-family:'Fraunces',serif; font-size:22px;}
+  .profile-stat span{font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.4px;}
+  .profile-list{
+    margin-top:8px; border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  }
+  .profile-list-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:11px 12px; border-bottom:1px solid var(--border); font-size:13px;
+  }
+  .profile-list-item:last-child{border-bottom:none;}
+  .profile-list-item small{color:var(--ink-soft);}
+  .profile-edit-btn{
+    width:100%; padding:11px; background:var(--gold); color:#1B1F3B;
+    border:none; border-radius:11px; cursor:pointer; font-weight:700; margin-top:16px;
+  }
+  @media (max-width:640px){
+    .profile-btn{padding:10px 12px; font-size:13px;}
+    .profile-btn{font-size:0;}
+    .profile-btn::before{content:"👤"; font-size:16px;}
+    .profile-stats{grid-template-columns:repeat(3,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <div class="logo"><span class="pin"></span>CampusFind</div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle dark mode">🌙</button>
+      <button class="profile-btn" onclick="openProfile()" aria-label="Open profile">👤 Profile</button>
+      <button class="post-btn" onclick="openModal()">+ Post Item</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="welcome">
+    <h1>Lost something on campus?</h1>
+    <p>Search what's been found, report what's missing, and help reunite people with their stuff.</p>
+  </section>
+
+  <section class="stats" id="stats" aria-label="Board statistics"></section>
+
+  <div class="search-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Search items, locations, descriptions…" oninput="displayListings()" aria-label="Search listings">
+    <select class="sort-select" id="sortSelect" onchange="displayListings()" aria-label="Sort listings">
+      <option value="new">Newest first</option>
+      <option value="old">Oldest first</option>
+      <option value="az">A–Z</option>
+    </select>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter active" data-filter="all" onclick="setFilter('all', this)">All</button>
+    <button class="filter" data-filter="lost" onclick="setFilter('lost', this)">🔴 Lost</button>
+    <button class="filter" data-filter="found" onclick="setFilter('found', this)">🟢 Found</button>
+    <button class="filter" data-filter="resolved" onclick="setFilter('resolved', this)">✅ Resolved</button>
+    <button class="filter" data-filter="Electronics" onclick="setFilter('Electronics', this)">💻 Electronics</button>
+    <button class="filter" data-filter="Books" onclick="setFilter('Books', this)">📚 Books</button>
+    <button class="filter" data-filter="Accessories" onclick="setFilter('Accessories', this)">🎧 Accessories</button>
+    <button class="filter" data-filter="Documents" onclick="setFilter('Documents', this)">📄 Documents</button>
+  </div>
+
+  <section class="listings" id="listings" aria-live="polite"></section>
+</main>
+
+<!-- POST ITEM MODAL -->
+<div class="modal" id="postModal" role="dialog" aria-modal="true" aria-labelledby="postModalTitle">
+  <div class="modal-content">
+    <h2 id="postModalTitle">Post an item</h2>
+    <form id="itemForm">
+      <div class="form-group">
+        <label>Status</label>
+        <div class="status-toggle">
+          <label class="opt-lost" id="lblLost"><input type="radio" name="status" value="lost" checked onchange="syncStatusToggle()"><span>🔴 I lost something</span></label>
+          <label class="opt-found" id="lblFound"><input type="radio" name="status" value="found" onchange="syncStatusToggle()"><span>🟢 I found something</span></label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="itemName">Item name</label>
+        <input type="text" id="itemName" placeholder="e.g. Black Wallet" required maxlength="60">
+      </div>
+
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" required>
+          <option value="Electronics">Electronics</option>
+          <option value="Books">Books</option>
+          <option value="Accessories">Accessories</option>
+          <option value="Clothing">Clothing</option>
+          <option value="Documents">Documents</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="location">Location</label>
+        <input type="text" id="location" placeholder="e.g. Library, Block A" required maxlength="60">
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" placeholder="Describe the item — color, brand, distinguishing marks…" required maxlength="300"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="contact">Contact</label>
+        <input type="text" id="contact" placeholder="Email or phone" required maxlength="60">
+      </div>
+
+      <div class="form-group">
+        <label for="photo">Photo (optional)</label>
+        <input type="file" id="photo" accept="image/*" onchange="previewPhoto(event)">
+        <div class="preview-wrap"><img id="photoPreview" alt="Selected photo preview"></div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Post listing</button>
+      <button type="button" class="close-btn" onclick="closeModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal" id="detailModal" role="dialog" aria-modal="true">
+  <div class="modal-content" id="detailContent"></div>
+</div>
+
+
+<!-- PROFILE MODAL ADDITION -->
+<div class="modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+  <div class="modal-content" id="profileContent">
+    <div class="profile-header">
+      <div class="profile-avatar" id="profileAvatar">👤</div>
+      <div>
+        <h2 id="profileModalTitle">My Profile</h2>
+        <p id="profileSubtitle">Your CampusFind account</p>
+      </div>
+    </div>
+
+    <div class="profile-stats">
+      <div class="profile-stat"><strong id="profileTotal">0</strong><span>Total Posts</span></div>
+      <div class="profile-stat"><strong id="profileLost">0</strong><span>Lost</span></div>
+      <div class="profile-stat"><strong id="profileFound">0</strong><span>Found</span></div>
+    </div>
+
+    <div class="form-group">
+      <label for="profileName">Name</label>
+      <input type="text" id="profileName" placeholder="Enter your name" maxlength="60">
+    </div>
+
+    <div class="form-group">
+      <label for="profileContact">Contact</label>
+      <input type="text" id="profileContact" placeholder="Email or phone" maxlength="60">
+    </div>
+
+    <div>
+      <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:var(--ink-soft);">
+        Recent Posts
+      </label>
+      <div class="profile-list" id="profilePosts"></div>
+    </div>
+
+    <button type="button" class="profile-edit-btn" onclick="saveProfile()">Save Profile</button>
+    <button type="button" class="close-btn" onclick="closeProfile()">Close</button>
+  </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const STORAGE_KEY = "campusListingsV2";
+  let editingId = null;
+
+  let listings = loadListings();
+
+  function loadListings(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try { return JSON.parse(raw); } catch(e) { /* fall through to seed */ }
+    }
+    const now = Date.now();
+    return [
+      { id: 1, status:"lost", name:"Black Wallet", category:"Accessories", location:"Main Library",
+        description:"Black leather wallet with a college ID inside.", contact:"student@example.com",
+        image:"", createdAt: now - 1000*60*60*5, resolved:false },
+      { id: 2, status:"found", name:"Water Bottle", category:"Other", location:"Sports Ground",
+        description:"Blue water bottle found near the football field.", contact:"student2@example.com",
+        image:"", createdAt: now - 1000*60*60*26, resolved:false },
+      { id: 3, status:"lost", name:"Blue Notebook", category:"Books", location:"Library",
+        description:"Spiral blue notebook, physics notes inside.", contact:"student3@example.com",
+        image:"", createdAt: now - 1000*60*30, resolved:true }
+    ];
+  }
+
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(listings)); }
+
+  let currentFilter = "all";
+
+  const CATEGORY_ICON = { Electronics:"💻", Books:"📚", Accessories:"🎧", Clothing:"👕", Documents:"📄", Other:"🎒" };
+
+  function relativeTime(ts){
+    const diff = Date.now() - ts;
+    const min = Math.floor(diff/60000);
+    if (min < 1) return "just now";
+    if (min < 60) return min + "m ago";
+    const hr = Math.floor(min/60);
+    if (hr < 24) return hr + "h ago";
+    const day = Math.floor(hr/24);
+    return day + "d ago";
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  // simple heuristic: an active lost item and active found item are a possible "match"
+  // if they share category and have overlapping words in name/location/description
+  function findsMatchFor(item){
+    if (item.resolved) return false;
+    const opposite = item.status === "lost" ? "found" : "lost";
+    return listings.some(other => {
+      if (other.id === item.id || other.resolved || other.status !== opposite) return false;
+      if (other.category !== item.category) return false;
+      const wordsA = (item.name + " " + item.location).toLowerCase().split(/\W+/).filter(w=>w.length>2);
+      const textB = (other.name + " " + other.location + " " + other.description).toLowerCase();
+      return wordsA.some(w => textB.includes(w));
+    });
+  }
+
+  function renderStats(){
+    const active = listings.filter(i => !i.resolved);
+    const lost = active.filter(i => i.status === "lost").length;
+    const found = active.filter(i => i.status === "found").length;
+    const resolved = listings.filter(i => i.resolved).length;
+    const rate = listings.length ? Math.round((resolved/listings.length)*100) : 0;
+
+    document.getElementById("stats").innerHTML = `
+      <div class="stat lost"><div class="num">${lost}</div><div class="lbl">Lost, active</div></div>
+      <div class="stat found"><div class="num">${found}</div><div class="lbl">Found, active</div></div>
+      <div class="stat resolved"><div class="num">${resolved}</div><div class="lbl">Reunited</div></div>
+      <div class="stat rate"><div class="num">${rate}%</div><div class="lbl">Resolution rate</div></div>
+    `;
+  }
+
+  function displayListings(){
+    renderStats();
+    const container = document.getElementById("listings");
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const sort = document.getElementById("sortSelect").value;
+
+    let filtered = listings.filter(item => {
+      const matchesSearch = (item.name+item.description+item.location).toLowerCase().includes(search);
+      let matchesFilter;
+      if (currentFilter === "all") matchesFilter = true;
+      else if (currentFilter === "resolved") matchesFilter = item.resolved;
+      else if (currentFilter === "lost" || currentFilter === "found") matchesFilter = item.status === currentFilter && !item.resolved;
+      else matchesFilter = item.category === currentFilter && !item.resolved;
+      return matchesSearch && matchesFilter;
+    });
+
+    if (sort === "new") filtered.sort((a,b)=>b.createdAt-a.createdAt);
+    else if (sort === "old") filtered.sort((a,b)=>a.createdAt-b.createdAt);
+    else if (sort === "az") filtered.sort((a,b)=>a.name.localeCompare(b.name));
+
+    container.innerHTML = "";
+
+    if (filtered.length === 0){
+      container.innerHTML = `<div class="empty">
+        <h3>Nothing here yet</h3>
+        <p>Try a different search, or be the first to post.</p>
+        <button onclick="openModal()">+ Post an item</button>
+      </div>`;
+      return;
+    }
+
+    filtered.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "card" + (item.resolved ? " resolved" : "");
+      card.tabIndex = 0;
+      card.setAttribute("role","button");
+      card.setAttribute("aria-label", `View details for ${item.name}`);
+
+      const imageHTML = item.image
+        ? `<img src="${item.image}" class="card-image" alt="${escapeHtml(item.name)}">`
+        : `<div class="card-image">${CATEGORY_ICON[item.category] || "🎒"}</div>`;
+
+      const statusLabel = item.resolved ? "✅ RESOLVED" : (item.status === "lost" ? "🔴 LOST" : "🟢 FOUND");
+      const statusClass = item.resolved ? "resolved" : item.status;
+      const matchFlag = findsMatchFor(item) ? `<div class="match-flag">Possible match</div>` : "";
+
+      card.innerHTML = `
+        ${matchFlag}
+        ${imageHTML}
+        <div class="card-content">
+          <span class="status ${statusClass}">${statusLabel}</span>
+          <h3>${escapeHtml(item.name)}</h3>
+          <p class="meta">${CATEGORY_ICON[item.category]||"🎒"} ${escapeHtml(item.category)}</p>
+          <p class="meta location">📍 ${escapeHtml(item.location)}</p>
+          <p class="desc">${escapeHtml(item.description)}</p>
+          <div class="timestamp">${relativeTime(item.createdAt)}</div>
+          <div class="card-btns">
+            <button class="contact-btn" data-action="contact">Contact</button>
+            ${!item.resolved ? `<button class="resolve-btn" data-action="resolve">Resolve</button>` : ""}
+            <button class="delete-btn" data-action="delete" aria-label="Delete listing">🗑</button>
+          </div>
+        </div>
+      `;
+
+      card.querySelector('[data-action="contact"]').addEventListener("click", e => { e.stopPropagation(); contactUser(item.contact); });
+      const resolveBtn = card.querySelector('[data-action="resolve"]');
+      if (resolveBtn) resolveBtn.addEventListener("click", e => { e.stopPropagation(); resolveListing(item.id); });
+      card.querySelector('[data-action="delete"]').addEventListener("click", e => { e.stopPropagation(); deleteListing(item.id); });
+      card.addEventListener("click", () => openDetail(item.id));
+      card.addEventListener("keydown", e => { if (e.key === "Enter") openDetail(item.id); });
+
+      container.appendChild(card);
+    });
+  }
+
+  function setFilter(filter, button){
+    currentFilter = filter;
+    document.querySelectorAll(".filter").forEach(btn => btn.classList.remove("active"));
+    button.classList.add("active");
+    displayListings();
+  }
+
+  // ---------- MODAL ----------
+  function openModal(){
+    editingId = null;
+    document.getElementById("itemForm").reset();
+    document.getElementById("photoPreview").style.display = "none";
+    document.getElementById("submitBtn").textContent = "Post listing";
+    syncStatusToggle();
+    document.getElementById("postModal").style.display = "flex";
+    document.getElementById("itemName").focus();
+  }
+  function closeModal(){ document.getElementById("postModal").style.display = "none"; }
+
+  function syncStatusToggle(){
+    const val = document.querySelector('input[name="status"]:checked').value;
+    document.getElementById("lblLost").classList.toggle("checked", val === "lost");
+    document.getElementById("lblFound").classList.toggle("checked", val === "found");
+  }
+  syncStatusToggle();
+
+  function previewPhoto(e){
+    const file = e.target.files[0];
+    const img = document.getElementById("photoPreview");
+    if (!file){ img.style.display = "none"; return; }
+    const reader = new FileReader();
+    reader.onload = ev => { img.src = ev.target.result; img.style.display = "block"; };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById("itemForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const photo = document.getElementById("photo").files[0];
+
+    const buildAndSave = (imageData) => {
+      const data = {
+        status: document.querySelector('input[name="status"]:checked').value,
+        name: document.getElementById("itemName").value.trim(),
+        category: document.getElementById("category").value,
+        location: document.getElementById("location").value.trim(),
+        description: document.getElementById("description").value.trim(),
+        contact: document.getElementById("contact").value.trim(),
+      };
+
+      if (editingId){
+        const idx = listings.findIndex(i => i.id === editingId);
+        listings[idx] = { ...listings[idx], ...data, image: imageData !== null ? imageData : listings[idx].image };
+        showToast("Listing updated");
+      } else {
+        listings.unshift({ id: Date.now(), ...data, image: imageData || "", createdAt: Date.now(), resolved:false });
+        showToast(data.status === "lost" ? "Lost item posted" : "Found item posted — thank you!");
+      }
+      save();
+      displayListings();
+      closeModal();
+    };
+
+    if (photo){
+      const reader = new FileReader();
+      reader.onload = ev => buildAndSave(ev.target.result);
+      reader.readAsDataURL(photo);
+    } else {
+      buildAndSave(editingId ? null : "");
+    }
+  });
+
+  function deleteListing(id){
+    if (!confirm("Delete this listing? This can't be undone.")) return;
+    listings = listings.filter(item => item.id !== id);
+    save();
+    displayListings();
+    showToast("Listing deleted");
+  }
+
+  function resolveListing(id){
+    const item = listings.find(i => i.id === id);
+    if (item){ item.resolved = true; save(); displayListings(); showToast("Marked as resolved 🎉"); }
+  }
+
+  function contactUser(contact){
+    if (contact.includes("@")) window.location.href = "mailto:" + contact;
+    else showToast("Contact: " + contact);
+  }
+
+  // ---------- DETAIL MODAL ----------
+  function openDetail(id){
+    const item = listings.find(i => i.id === id);
+    if (!item) return;
+    const imageHTML = item.image
+      ? `<img src="${item.image}" class="detail-img" alt="${escapeHtml(item.name)}" style="object-fit:cover;">`
+      : `<div class="detail-img">${CATEGORY_ICON[item.category]||"🎒"}</div>`;
+
+    document.getElementById("detailContent").innerHTML = `
+      ${imageHTML}
+      <span class="status ${item.resolved ? 'resolved' : item.status}">${item.resolved ? '✅ RESOLVED' : (item.status==='lost'?'🔴 LOST':'🟢 FOUND')}</span>
+      <h2 style="margin-top:10px;">${escapeHtml(item.name)}</h2>
+      <div class="detail-row"><span>Category</span><span>${CATEGORY_ICON[item.category]||"🎒"} ${escapeHtml(item.category)}</span></div>
+      <div class="detail-row"><span>Location</span><span>📍 ${escapeHtml(item.location)}</span></div>
+      <div class="detail-row"><span>Posted</span><span>${relativeTime(item.createdAt)}</span></div>
+      <div class="detail-row"><span>Contact</span><span>${escapeHtml(item.contact)}</span></div>
+      <p style="margin-top:14px; color:var(--ink-soft); line-height:1.5;">${escapeHtml(item.description)}</p>
+      <button class="submit-btn" style="margin-top:18px;" onclick="contactUser('${item.contact.replace(/'/g,"\\'")}')">Contact</button>
+      <button class="close-btn" onclick="closeDetail()">Close</button>
+    `;
+    document.getElementById("detailModal").style.display = "flex";
+  }
+  function closeDetail(){ document.getElementById("detailModal").style.display = "none"; }
+
+  // ---------- TOASTS ----------
+  function showToast(msg){
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.getElementById("toastContainer").appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // ---------- THEME ----------
+  function toggleTheme(){
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+    document.getElementById("themeBtn").textContent = isDark ? "🌙" : "☀️";
+    localStorage.setItem("campusTheme", isDark ? "light" : "dark");
+  }
+  (function initTheme(){
+    const saved = localStorage.getItem("campusTheme");
+    if (saved === "dark"){
+      document.documentElement.setAttribute("data-theme","dark");
+      document.getElementById("themeBtn").textContent = "☀️";
+    }
+  })();
+
+
+  // ---------- PROFILE ADDITION ----------
+  const PROFILE_KEY = "campusFindProfileV1";
+
+  function loadProfile(){
+    try {
+      return JSON.parse(localStorage.getItem(PROFILE_KEY)) || { name:"", contact:"" };
+    } catch(e) {
+      return { name:"", contact:"" };
+    }
+  }
+
+  function saveProfile(){
+    const profile = {
+      name: document.getElementById("profileName").value.trim(),
+      contact: document.getElementById("profileContact").value.trim()
+    };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    updateProfileInterface();
+    showToast("Profile saved");
+  }
+
+  function updateProfileInterface(){
+    const profile = loadProfile();
+    const name = profile.name || "CampusFind User";
+    const initials = name.split(/\s+/).filter(Boolean).slice(0,2)
+      .map(word => word[0].toUpperCase()).join("") || "👤";
+
+    document.getElementById("profileName").value = profile.name;
+    document.getElementById("profileContact").value = profile.contact;
+    document.getElementById("profileAvatar").textContent = initials;
+    document.getElementById("profileSubtitle").textContent =
+      profile.contact || "Your CampusFind account";
+
+    const total = listings.length;
+    const lost = listings.filter(item => item.status === "lost").length;
+    const found = listings.filter(item => item.status === "found").length;
+
+    document.getElementById("profileTotal").textContent = total;
+    document.getElementById("profileLost").textContent = lost;
+    document.getElementById("profileFound").textContent = found;
+
+    const posts = document.getElementById("profilePosts");
+    if (!listings.length){
+      posts.innerHTML = '<div class="profile-list-item"><small>No posts yet.</small></div>';
+      return;
+    }
+
+    posts.innerHTML = listings.slice(0,5).map(item => `
+      <div class="profile-list-item">
+        <span>${escapeHtml(item.name)}</span>
+        <small>${item.resolved ? "Resolved" : item.status === "lost" ? "Lost" : "Found"}</small>
+      </div>
+    `).join("");
+  }
+
+  function openProfile(){
+    updateProfileInterface();
+    document.getElementById("profileModal").style.display = "flex";
+    document.getElementById("profileName").focus();
+  }
+
+  function closeProfile(){
+    document.getElementById("profileModal").style.display = "none";
+  }
+
+  // ---------- ESC to close modals ----------
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape"){ closeModal(); closeDetail(); closeProfile(); }
+  });
+  document.getElementById("postModal").addEventListener("click", e => { if (e.target.id === "postModal") closeModal(); });
+  document.getElementById("detailModal").addEventListener("click", e => { if (e.target.id === "detailModal") closeDetail(); });
+  document.getElementById("profileModal").addEventListener("click", e => { if (e.target.id === "profileModal") closeProfile(); });
+
+  // ---------- INITIAL LOAD ----------
+  save();
+  displayListings();
+</script>
+
+</body>
+</html>
